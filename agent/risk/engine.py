@@ -11,9 +11,16 @@ class RiskDecision:
     reasons: tuple[str, ...] = ()
 
 
-def position_size(balance: float, risk_pct: float, stop_distance: float, value_per_unit: float = 1.0) -> float:
+def position_size(
+    balance: float,
+    risk_pct: float,
+    stop_distance: float,
+    value_per_unit: float = 1.0,
+) -> float:
     if balance <= 0 or risk_pct <= 0 or stop_distance <= 0 or value_per_unit <= 0:
-        raise ValueError("Balance, risk percentage, stop distance and unit value must be positive")
+        raise ValueError(
+            "Balance, risk percentage, stop distance and unit value must be positive"
+        )
     risk_amount = balance * risk_pct / 100
     return risk_amount / (stop_distance * value_per_unit)
 
@@ -44,5 +51,11 @@ def evaluate_trade(
     size = position_size(balance, risk_pct, risk_distance)
 
     if rr < min_risk_reward:
-        return RiskDecision(False, risk_amount, size, rr, ("minimum_risk_reward_not_met",))
+        return RiskDecision(
+            False,
+            risk_amount,
+            size,
+            rr,
+            ("minimum_risk_reward_not_met",),
+        )
     return RiskDecision(True, risk_amount, size, rr)
