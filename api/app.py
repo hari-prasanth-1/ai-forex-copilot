@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query\nfrom fastapi.responses import FileResponse\nfrom fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from market_data.models import Timeframe
+from market_data.models import Candle, Timeframe\nfrom api.services import build_analysis\nfrom datetime import datetime
 
 
 class TradingMode(StrEnum):
@@ -20,7 +20,7 @@ class ModeRequest(BaseModel):
     mode: TradingMode
 
 
-class AnalysisResponse(BaseModel):
+class CandleRequest(BaseModel):\n    timestamp: datetime\n    open: float\n    high: float\n    low: float\n    close: float\n    volume: float = Field(ge=0)\n\n\nclass CandleAnalysisRequest(BaseModel):\n    symbol: str = Field(min_length=1, max_length=12)\n    timeframe: Timeframe = Timeframe.M15\n    candles: list[CandleRequest] = Field(min_length=1, max_length=5000)\n\n\nclass AnalysisResponse(BaseModel):
     symbol: str
     timeframe: Timeframe
     decision: str = "NO_TRADE"
@@ -78,7 +78,7 @@ def analysis(
     )
 
 
-@app.get("/risk", response_model=RiskResponse)
+@app.post("/analysis", response_model=AnalysisResponse)\ndef analysis_from_candles(request: CandleAnalysisRequest) -> AnalysisResponse:\n    candles = [Candle(c.timestamp, c.open, c.high, c.low, c.close, c.volume) for c in request.candles]\n    setup = build_analysis(request.symbol.upper(), request.timeframe.value, candles)\n    return AnalysisResponse(\n        symbol=setup.symbol, timeframe=request.timeframe, decision=setup.signal.value,\n        message="; ".join(setup.evidence),\n    )\n\n\n@app.get("/risk", response_model=RiskResponse)
 def risk() -> RiskResponse:
     return RiskResponse(reason="No trade approved; execution is disabled")
 
