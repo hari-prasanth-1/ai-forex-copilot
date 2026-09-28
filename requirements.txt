@@ -9,4 +9,4 @@ mypy>=1.11,<2.0
 
 # Optional local MT5 terminal integration (not required for CI)
 # MetaTrader5>=5.0
-httpx2>=0.1,<1.0
+httpx2==2.4.0
