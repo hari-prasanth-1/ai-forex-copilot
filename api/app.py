@@ -54,6 +54,17 @@ class RiskResponse(BaseModel):
     execution_enabled: bool = False
 
 
+class MT5LiveResponse(BaseModel):
+    symbol: str
+    timeframe: Timeframe
+    candles: int
+    decision: str
+    latest_close: float | None = None
+    evidence: list[str] = Field(default_factory=list)
+    source: str = "mt5_terminal"
+    execution_enabled: bool = False
+
+
 class LivePaperResponse(BaseModel):
     symbol: str
     timeframe: Timeframe
@@ -127,6 +138,56 @@ def analysis_from_candles(request: CandleAnalysisRequest) -> AnalysisResponse:
         decision=setup.signal.value,
         message="; ".join(setup.evidence),
     )
+
+
+@app.get("/mt5/status")
+def mt5_status() -> dict[str, Any]:
+    """Check whether the local MT5 terminal can be initialized."""
+    try:
+        market_data = MetaTrader5MarketData()
+        connected = market_data.connected
+        market_data.shutdown()
+        return {
+            "connected": connected,
+            "data_source": "mt5_terminal",
+            "execution_enabled": False,
+        }
+    except Exception as exc:
+        return {
+            "connected": False,
+            "data_source": "mt5_terminal",
+            "execution_enabled": False,
+            "error": str(exc),
+        }
+
+
+@app.get("/mt5/live/{symbol}", response_model=MT5LiveResponse)
+def mt5_live(
+    symbol: str,
+    timeframe: Timeframe = Query(default=Timeframe.M15),
+    limit: int = Query(default=200, ge=50, le=5000),
+) -> MT5LiveResponse:
+    """Read actual MT5 terminal candles and run analysis without order placement."""
+    market_data = MetaTrader5MarketData()
+    try:
+        candles = tuple(
+            market_data.get_candles(
+                MarketRequest(symbol=symbol.upper(), timeframe=timeframe, limit=limit)
+            )
+        )
+        setup = build_analysis(symbol.upper(), timeframe.value, candles)
+        return MT5LiveResponse(
+            symbol=setup.symbol,
+            timeframe=timeframe,
+            candles=len(candles),
+            decision=setup.signal.value,
+            latest_close=candles[-1].close if candles else None,
+            evidence=list(setup.evidence),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"MT5 market-data error: {exc}") from exc
+    finally:
+        market_data.shutdown()
 
 
 @app.get("/paper/live/{symbol}", response_model=LivePaperResponse)
