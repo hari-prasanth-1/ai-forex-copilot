@@ -5,7 +5,11 @@ from market_data.models import Timeframe
 from market_data.providers.yahoo_chart import YahooChartMarketData
 
 
-def build_mobile_analysis(symbol: str = "AUDUSD", timeframe: Timeframe = Timeframe.M15, limit: int = 200):
+def build_mobile_analysis(
+    symbol: str = "AUDUSD",
+    timeframe: Timeframe = Timeframe.M15,
+    limit: int = 200,
+):
     candles = YahooChartMarketData().get_candles(symbol, timeframe, limit)
     analysis = build_analysis(symbol, timeframe, candles)
     return {
