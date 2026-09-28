@@ -16,7 +16,5 @@ jobs:
           python-version: "3.11"
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
-      - run: ruff check tests/test_api.py --fix || true
-      - run: git diff -- tests/test_api.py
       - run: ruff check .
       - run: pytest -q
