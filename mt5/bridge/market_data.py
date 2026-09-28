@@ -57,7 +57,7 @@ class MetaTrader5MarketData:
         Timeframe.H4: "TIMEFRAME_H4",
     }
 
-    def __init__(self, mt5_module: Any | None = None) -> None:
+    def __init__(self, mt5_module: Any | None = None, initialize: bool = True) -> None:
         if mt5_module is None:
             try:
                 import MetaTrader5 as mt5_module  # type: ignore[import-not-found]
@@ -66,8 +66,27 @@ class MetaTrader5MarketData:
                     "MetaTrader5 Python package is required for live read-only data"
                 ) from exc
         self._mt5 = mt5_module
+        self._initialized = False
+        if initialize:
+            self.connect()
+
+    def connect(self) -> None:
+        """Connect the Python API to the already-installed MT5 terminal."""
+        initialize = getattr(self._mt5, "initialize", None)
+        if initialize is None:
+            raise RuntimeError("MetaTrader5 module does not expose initialize()")
+        if not initialize():
+            error = getattr(self._mt5, "last_error", lambda: "unknown MT5 error")()
+            raise RuntimeError(f"MT5 terminal initialization failed: {error}")
+        self._initialized = True
+
+    @property
+    def connected(self) -> bool:
+        return self._initialized
 
     def get_candles(self, request: MarketRequest) -> Sequence[Candle]:
+        if not self._initialized:
+            raise RuntimeError("MT5 terminal is not initialized")
         timeframe_name = self._TIMEFRAMES[request.timeframe]
         timeframe = getattr(self._mt5, timeframe_name)
         rows = self._mt5.copy_rates_from_pos(request.symbol.upper(), timeframe, 0, request.limit)
@@ -75,6 +94,13 @@ class MetaTrader5MarketData:
             error = getattr(self._mt5, "last_error", lambda: "unknown MT5 error")()
             raise RuntimeError(f"MT5 market-data request failed: {error}")
         return tuple(candle_from_mt5_row(row) for row in rows)
+
+    def shutdown(self) -> None:
+        """Close the Python API connection without placing any trade."""
+        shutdown = getattr(self._mt5, "shutdown", None)
+        if shutdown is not None and self._initialized:
+            shutdown()
+        self._initialized = False
 
 
 def candle_from_mt5_row(row: object) -> Candle:

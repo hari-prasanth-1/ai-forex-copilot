@@ -59,3 +59,49 @@ def test_mt5_row_is_normalized_to_internal_candle() -> None:
     assert candle.timestamp.tzinfo == timezone.utc
     assert candle.close == pytest.approx(0.7010)
     assert candle.volume == 123
+
+
+def test_mt5_adapter_initializes_and_reads_bars() -> None:
+    rows = [
+        SimpleNamespace(
+            time=1790416800,
+            open=0.7000,
+            high=0.7020,
+            low=0.6990,
+            close=0.7010,
+            tick_volume=123,
+        )
+    ]
+
+    class FakeMT5:
+        TIMEFRAME_M15 = "M15"
+
+        def __init__(self) -> None:
+            self.initialized = False
+            self.shutdown_called = False
+
+        def initialize(self) -> bool:
+            self.initialized = True
+            return True
+
+        def copy_rates_from_pos(self, symbol, timeframe, start, count):
+            assert self.initialized is True
+            assert symbol == "AUDUSD"
+            assert timeframe == "M15"
+            assert start == 0
+            assert count == 50
+            return rows
+
+        def shutdown(self) -> None:
+            self.shutdown_called = True
+
+    from mt5.bridge.market_data import MetaTrader5MarketData
+
+    fake = FakeMT5()
+    adapter = MetaTrader5MarketData(mt5_module=fake)
+    assert adapter.connected is True
+    candles = adapter.get_candles(MarketRequest("AUDUSD", Timeframe.M15, 50))
+    assert len(candles) == 1
+    assert candles[0].close == pytest.approx(0.7010)
+    adapter.shutdown()
+    assert fake.shutdown_called is True
