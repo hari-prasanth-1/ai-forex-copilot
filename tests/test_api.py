@@ -41,3 +41,9 @@ def test_kill_switch_forces_analysis_only() -> None:
     assert body["mode"] == "analysis_only"
     assert body["kill_switch"] is True
     assert body["execution_enabled"] is False
+
+
+def test_live_paper_endpoint_is_declared() -> None:
+    from api.app import app
+    paths = {route.path for route in app.routes}
+    assert "/paper/live/{symbol}" in paths
