@@ -11,6 +11,7 @@ select = ["E", "F", "I"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["agent", "api", "market_data", "mt5", "tests"]
+no-lines-before = ["first-party"]
 
 [tool.mypy]
 python_version = "3.11"
