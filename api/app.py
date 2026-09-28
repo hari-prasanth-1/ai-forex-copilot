@@ -1,14 +1,19 @@
 """Mobile-ready API boundary for the Forex Copilot."""
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query\nfrom fastapi.responses import FileResponse\nfrom fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from market_data.models import Candle, Timeframe\nfrom api.services import build_analysis
-from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData\nfrom datetime import datetime
+from agent.analysis.models import TradeSetup
+from api.services import build_analysis
+from market_data.models import Candle, Timeframe
+from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData
 
 
 class TradingMode(StrEnum):
@@ -21,7 +26,22 @@ class ModeRequest(BaseModel):
     mode: TradingMode
 
 
-class CandleRequest(BaseModel):\n    timestamp: datetime\n    open: float\n    high: float\n    low: float\n    close: float\n    volume: float = Field(ge=0)\n\n\nclass CandleAnalysisRequest(BaseModel):\n    symbol: str = Field(min_length=1, max_length=12)\n    timeframe: Timeframe = Timeframe.M15\n    candles: list[CandleRequest] = Field(min_length=1, max_length=5000)\n\n\nclass AnalysisResponse(BaseModel):
+class CandleRequest(BaseModel):
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float = Field(ge=0)
+
+
+class CandleAnalysisRequest(BaseModel):
+    symbol: str = Field(min_length=1, max_length=12)
+    timeframe: Timeframe = Timeframe.M15
+    candles: list[CandleRequest] = Field(min_length=1, max_length=5000)
+
+
+class AnalysisResponse(BaseModel):
     symbol: str
     timeframe: Timeframe
     decision: str = "NO_TRADE"
@@ -51,8 +71,14 @@ class SafetyState(BaseModel):
     execution_enabled: bool = False
 
 
-app = FastAPI(title="AI Forex Copilot API", version="0.3.0")\napp.mount("/static", StaticFiles(directory="api/static"), name="static")
-_state = SafetyState()\n\n\n@app.get("/", include_in_schema=False)\ndef root() -> FileResponse:\n    return FileResponse("api/static/index.html")
+app = FastAPI(title="AI Forex Copilot API", version="0.3.0")
+app.mount("/static", StaticFiles(directory="api/static"), name="static")
+_state = SafetyState()
+
+
+@app.get("/", include_in_schema=False)
+def root() -> FileResponse:
+    return FileResponse("api/static/index.html")
 
 
 @app.get("/health")
@@ -89,7 +115,45 @@ def analysis(
     )
 
 
-@app.post("/analysis", response_model=AnalysisResponse)\ndef analysis_from_candles(request: CandleAnalysisRequest) -> AnalysisResponse:\n    candles = [Candle(c.timestamp, c.open, c.high, c.low, c.close, c.volume) for c in request.candles]\n    setup = build_analysis(request.symbol.upper(), request.timeframe.value, candles)\n    return AnalysisResponse(\n        symbol=setup.symbol, timeframe=request.timeframe, decision=setup.signal.value,\n        message="; ".join(setup.evidence),\n    )\n\n\n@app.get("/risk", response_model=RiskResponse)
+@app.post("/analysis", response_model=AnalysisResponse)
+def analysis_from_candles(request: CandleAnalysisRequest) -> AnalysisResponse:
+    candles = [
+        Candle(c.timestamp, c.open, c.high, c.low, c.close, c.volume)
+        for c in request.candles
+    ]
+    setup = build_analysis(request.symbol.upper(), request.timeframe.value, candles)
+    return AnalysisResponse(
+        symbol=setup.symbol,
+        timeframe=request.timeframe,
+        decision=setup.signal.value,
+        message="; ".join(setup.evidence),
+    )
+
+
+@app.get("/paper/live/{symbol}", response_model=LivePaperResponse)
+def paper_live(
+    symbol: str,
+    timeframe: Timeframe = Query(default=Timeframe.M15),
+    limit: int = Query(default=200, ge=50, le=5000),
+) -> LivePaperResponse:
+    market_data = MetaTrader5MarketData()
+    candles = tuple(
+        market_data.get_candles(
+            MarketRequest(symbol=symbol.upper(), timeframe=timeframe, limit=limit)
+        )
+    )
+    setup = build_analysis(symbol.upper(), timeframe.value, candles)
+    return LivePaperResponse(
+        symbol=setup.symbol,
+        timeframe=timeframe,
+        candles=len(candles),
+        decision=setup.signal.value,
+        latest_close=candles[-1].close if candles else None,
+        evidence=list(setup.evidence),
+    )
+
+
+@app.get("/risk", response_model=RiskResponse)
 def risk() -> RiskResponse:
     return RiskResponse(reason="No trade approved; execution is disabled")
 
@@ -101,7 +165,6 @@ def mode() -> SafetyState:
 
 @app.post("/mode", response_model=SafetyState)
 def set_mode(request: ModeRequest) -> SafetyState:
-    # Mode changes never enable live execution. Kill switch remains authoritative.
     _state.mode = request.mode
     _state.execution_enabled = False
     return _state
