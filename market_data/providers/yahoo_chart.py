@@ -11,12 +11,22 @@ from market_data.models import Candle, Timeframe
 class YahooChartMarketData:
     """Read-only market-data adapter for mobile development."""
 
-    _INTERVALS = {Timeframe.M5: "5m", Timeframe.M15: "15m", Timeframe.H1: "1h", Timeframe.H4: "1h"}
+    _INTERVALS = {
+        Timeframe.M5: "5m",
+        Timeframe.M15: "15m",
+        Timeframe.H1: "1h",
+        Timeframe.H4: "1h",
+    }
 
     def __init__(self, timeout: float = 10.0) -> None:
         self.timeout = timeout
 
-    def get_candles(self, symbol: str, timeframe: Timeframe = Timeframe.M15, limit: int = 200) -> list[Candle]:
+    def get_candles(
+        self,
+        symbol: str,
+        timeframe: Timeframe = Timeframe.M15,
+        limit: int = 200,
+    ) -> list[Candle]:
         if limit < 50 or limit > 5000:
             raise ValueError("limit must be between 50 and 5000")
         yahoo_symbol = quote(self._to_yahoo_symbol(symbol), safe="")
@@ -32,16 +42,22 @@ class YahooChartMarketData:
         quote_data = result["indicators"]["quote"][0]
         candles = []
         for index, timestamp in enumerate(timestamps):
-            values = {key: quote_data.get(key, [None] * len(timestamps))[index]
-                      for key in ("open", "high", "low", "close", "volume")}
+            values = {
+                key: quote_data.get(key, [None] * len(timestamps))[index]
+                for key in ("open", "high", "low", "close", "volume")
+            }
             if any(value is None for value in values.values()):
                 continue
-            candles.append(Candle(
-                timestamp=datetime.fromtimestamp(timestamp, tz=timezone.utc),
-                open=float(values["open"]), high=float(values["high"]),
-                low=float(values["low"]), close=float(values["close"]),
-                volume=float(values["volume"]),
-            ))
+            candles.append(
+                Candle(
+                    timestamp=datetime.fromtimestamp(timestamp, tz=timezone.utc),
+                    open=float(values["open"]),
+                    high=float(values["high"]),
+                    low=float(values["low"]),
+                    close=float(values["close"]),
+                    volume=float(values["volume"]),
+                )
+            )
         if not candles:
             raise RuntimeError(f"No market data returned for {symbol}")
         return candles[-limit:]
