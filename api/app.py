@@ -175,3 +175,18 @@ def kill_switch() -> SafetyState:
     _state.execution_enabled = False
     _state.mode = TradingMode.ANALYSIS_ONLY
     return _state
+
+
+@app.get("/mobile/live/{symbol}")
+def mobile_live(
+    symbol: str,
+    timeframe: Timeframe = Query(default=Timeframe.M15),
+    limit: int = Query(default=200, ge=50, le=5000),
+) -> dict[str, Any]:
+    """Run read-only analysis using the phone-friendly market-data adapter."""
+    from api.mobile_market import build_mobile_analysis
+
+    try:
+        return build_mobile_analysis(symbol.upper(), timeframe, limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"mobile market-data error: {exc}") from exc
