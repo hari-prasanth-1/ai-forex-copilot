@@ -18,7 +18,7 @@ def build_mobile_analysis(
         "timeframe": timeframe.value,
         "candle_count": len(candles),
         "latest_close": candles[-1].close,
-        "decision": analysis.decision.value,
+        "decision": analysis.signal.value,
         "evidence": analysis.evidence,
         "execution_enabled": False,
     }
