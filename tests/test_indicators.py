@@ -16,6 +16,11 @@ def test_rsi_is_bounded():
     assert ((result >= 0) & (result <= 100)).all()
 
 
+def test_rsi_handles_zero_loss_as_overbought():
+    values = pd.Series(range(1, 40), dtype=float)
+    assert rsi(values, 14).iloc[-1] == 100.0
+
+
 def test_macd_shape():
     values = pd.Series(range(1, 60), dtype=float)
     result = macd(values)
