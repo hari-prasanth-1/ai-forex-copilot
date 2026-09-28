@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query\nfrom fastapi.responses import FileResponse\nfrom fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from market_data.models import Timeframe
@@ -40,8 +40,8 @@ class SafetyState(BaseModel):
     execution_enabled: bool = False
 
 
-app = FastAPI(title="AI Forex Copilot API", version="0.2.0")
-_state = SafetyState()
+app = FastAPI(title="AI Forex Copilot API", version="0.3.0")\napp.mount("/static", StaticFiles(directory="api/static"), name="static")
+_state = SafetyState()\n\n\n@app.get("/", include_in_schema=False)\ndef root() -> FileResponse:\n    return FileResponse("api/static/index.html")
 
 
 @app.get("/health")
