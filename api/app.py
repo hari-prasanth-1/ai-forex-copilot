@@ -10,7 +10,6 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from agent.analysis.models import TradeSetup
 from api.services import build_analysis
 from market_data.models import Candle, Timeframe
 from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData
