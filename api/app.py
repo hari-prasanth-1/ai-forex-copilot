@@ -7,7 +7,8 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query\nfrom fastapi.responses import FileResponse\nfrom fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from market_data.models import Candle, Timeframe\nfrom api.services import build_analysis\nfrom datetime import datetime
+from market_data.models import Candle, Timeframe\nfrom api.services import build_analysis
+from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData\nfrom datetime import datetime
 
 
 class TradingMode(StrEnum):
@@ -31,6 +32,16 @@ class CandleRequest(BaseModel):\n    timestamp: datetime\n    open: float\n    h
 class RiskResponse(BaseModel):
     allowed: bool = False
     reason: str
+    execution_enabled: bool = False
+
+
+class LivePaperResponse(BaseModel):
+    symbol: str
+    timeframe: Timeframe
+    candles: int
+    decision: str
+    latest_close: float | None = None
+    evidence: list[str] = Field(default_factory=list)
     execution_enabled: bool = False
 
 
