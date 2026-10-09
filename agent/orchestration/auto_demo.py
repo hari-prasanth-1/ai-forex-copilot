@@ -33,6 +33,10 @@ class AutoDemoBot:
             "last_reason": "Bot is stopped",
             "last_order": None,
             "orders_today": 0,
+            "balance": None,
+            "equity": None,
+            "floating_pnl": None,
+            "currency": None,
             "error": None,
         }
         self._order_day = datetime.now(timezone.utc).date().isoformat()
@@ -163,7 +167,15 @@ class AutoDemoBot:
             finally:
                 adapter.shutdown()
             # The market-data adapter calls MT5 shutdown; reconnect before reading quotes.
-            mt5, _ = self._account_snapshot()
+            mt5, snapshot = self._account_snapshot()
+            account, positions = snapshot
+            with self._lock:
+                self._status.update(
+                    balance=float(account.balance),
+                    equity=float(account.equity),
+                    floating_pnl=round(sum(float(p.profit) for p in positions), 2),
+                    currency=str(getattr(account, "currency", "")),
+                )
             if len(candles) < 220:
                 self._record("WAIT", "Need at least 220 candles before evaluating a setup", None)
                 return
