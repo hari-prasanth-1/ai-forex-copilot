@@ -40,6 +40,8 @@ class AutoDemoBot:
         self._orders_today = 0
         self._day_start_balance: float | None = None
         self._last_processed_bar: dict[str, int] = {}
+        self._symbol = os.getenv("AUTO_DEMO_SYMBOL", "AUDUSD").strip().upper()
+        self._timeframe = Timeframe(os.getenv("AUTO_DEMO_TIMEFRAME", "M15").upper())
 
     def status(self) -> dict[str, Any]:
         with self._lock:
@@ -47,7 +49,7 @@ class AutoDemoBot:
             result["orders_today"] = self._orders_today
             return result
 
-    def start(self, confirmation: str) -> dict[str, Any]:
+    def start(self, confirmation: str, symbol: str = "AUDUSD", timeframe: str = "M15") -> dict[str, Any]:
         if confirmation != "START DEMO AUTO BOT":
             raise ValueError("Exact confirmation phrase is required")
         if os.getenv("FOREX_COPILOT_ENABLE_DEMO_ORDERS", "").lower() != "true":
@@ -56,7 +58,16 @@ class AutoDemoBot:
             raise ValueError("Set FOREX_COPILOT_ENABLE_AUTO_DEMO=true to opt into auto demo")
         if not os.getenv("OPENAI_API_KEY"):
             raise ValueError("OPENAI_API_KEY is required; bot will not trade without AI review")
+        normalized_symbol = symbol.strip().upper()
+        if not normalized_symbol.isalnum() or not 3 <= len(normalized_symbol) <= 12:
+            raise ValueError("Invalid broker symbol")
+        try:
+            selected_timeframe = Timeframe(timeframe.upper())
+        except ValueError as exc:
+            raise ValueError("Supported timeframes: M5, M15, H1, H4, D1") from exc
         with self._lock:
+            self._symbol = normalized_symbol
+            self._timeframe = selected_timeframe
             if self._thread and self._thread.is_alive():
                 return self.status()
             self._stop_event.clear()
@@ -143,8 +154,8 @@ class AutoDemoBot:
             if len(positions) >= 1:
                 self._record("WAIT", "An open position already exists; one position maximum", None)
                 return
-            symbol = os.getenv("AUTO_DEMO_SYMBOL", "AUDUSD").strip().upper()
-            timeframe = Timeframe(os.getenv("AUTO_DEMO_TIMEFRAME", "M15").upper())
+            symbol = self._symbol
+            timeframe = self._timeframe
             adapter = MetaTrader5MarketData()
             try:
                 candles = tuple(adapter.get_candles(MarketRequest(symbol, timeframe, 300)))
