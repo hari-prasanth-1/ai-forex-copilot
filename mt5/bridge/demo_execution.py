@@ -6,6 +6,7 @@ the environment opt-in must be enabled, and the connected account must be DEMO.
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -14,7 +15,7 @@ MAX_VOLUME = 0.01
 MAX_RISK_FRACTION = 0.005
 MAX_ORDERS_PER_DAY = 3
 MAX_SPREAD_POINTS = 35
-_ALLOWED_SYMBOL = __import__("re").compile(r"^[A-Z0-9.]{3,12}$")
+_ALLOWED_SYMBOL = re.compile(r"^[A-Z0-9.]{3,12}$")
 
 
 class ExecutionRejected(RuntimeError):
@@ -98,9 +99,13 @@ def submit_demo_order(
         sl, tp = round(float(stop_loss), digits), round(float(take_profit), digits)
         stop_level = int(getattr(info, "trade_stops_level", 0) or 0) * point
         if is_buy and not (sl < entry - stop_level and tp > entry + stop_level):
-            raise ExecutionRejected("BUY requires stop-loss below entry and take-profit above entry")
+            raise ExecutionRejected(
+                "BUY requires stop-loss below entry and take-profit above entry"
+            )
         if not is_buy and not (sl > entry + stop_level and tp < entry - stop_level):
-            raise ExecutionRejected("SELL requires stop-loss above entry and take-profit below entry")
+            raise ExecutionRejected(
+                "SELL requires stop-loss above entry and take-profit below entry"
+            )
 
         order_type = mt5.ORDER_TYPE_BUY if is_buy else mt5.ORDER_TYPE_SELL
         estimated_loss = mt5.order_calc_profit(order_type, normalized, volume, entry, sl)
@@ -130,7 +135,8 @@ def submit_demo_order(
         check = mt5.order_check(request)
         if check is None or int(getattr(check, "retcode", -1)) != 0:
             raise ExecutionRejected(
-                f"Broker order_check rejected the order: {getattr(check, 'comment', mt5.last_error())}"
+                "Broker order_check rejected the order: "
+                f"{getattr(check, 'comment', mt5.last_error())}"
             )
         result = mt5.order_send(request)
         if result is None:
