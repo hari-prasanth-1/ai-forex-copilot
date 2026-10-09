@@ -163,8 +163,7 @@ class AutoDemoBot:
             finally:
                 adapter.shutdown()
             # The market-data adapter calls MT5 shutdown; reconnect before reading quotes.
-            mt5, snapshot = self._account_snapshot()
-            account, positions = snapshot
+            mt5, _ = self._account_snapshot()
             if len(candles) < 220:
                 self._record("WAIT", "Need at least 220 candles before evaluating a setup", None)
                 return
