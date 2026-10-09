@@ -1,3 +1,63 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827"><title>AI Forex Copilot</title><link rel="manifest" href="/static/manifest.json"><link rel="stylesheet" href="/static/app.css"></head>
-<body><main class="card"><h1>AI Forex Copilot</h1><p class="muted">Mobile analysis console · execution disabled</p><label>Symbol <input id="symbol" value="AUDUSD" maxlength="12"></label><label>Timeframe <select id="timeframe"><option>M15</option><option>H1</option><option>M5</option><option>H4</option></select></label><button id="analyse">Analyse</button><pre id="result">Ready.</pre></main><script src="/static/app.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>AI Forex Copilot</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://unpkg.com/lightweight-charts@4.2.2/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><div class="eyebrow">MT5 · READ-ONLY DATA</div><h1>Forex Copilot</h1></div>
+    <div class="connection"><span class="dot"></span><span id="connection">Ready to connect</span></div>
+  </header>
+  <main class="dashboard">
+    <section class="controls panel">
+      <label>Market <input id="symbol" value="AUDUSD" maxlength="12" autocomplete="off"></label>
+      <label>Timeframe <select id="timeframe"><option>M5</option><option selected>M15</option><option>H1</option><option>H4</option></select></label>
+      <label>Candles <select id="limit"><option>100</option><option selected>200</option><option>500</option><option>1000</option></select></label>
+      <button id="analyse">Load live chart</button>
+      <button id="refresh" class="secondary">Refresh</button>
+    </section>
+    <section class="metrics">
+      <article class="metric panel"><span>Latest close</span><strong id="price">—</strong><small id="market-label">AUDUSD · M15</small></article>
+      <article class="metric panel"><span>Trend view</span><strong id="trend" class="neutral">—</strong><small id="structure">Market structure: —</small></article>
+      <article class="metric panel"><span>Current strategy</span><strong id="decision" class="neutral">—</strong><small>Analysis signal, not a trade instruction</small></article>
+      <article class="metric panel"><span>Execution</span><strong class="neutral">OFF</strong><small>Orders are disabled</small></article>
+    </section>
+    <section class="panel chart-panel">
+      <div class="section-heading"><div><h2>Price action</h2><p>EMA 20 / 50 / 200 · historical crossover markers</p></div><div class="legend"><span class="ema20">EMA 20</span><span class="ema50">EMA 50</span><span class="ema200">EMA 200</span></div></div>
+      <div id="price-chart" class="chart price-chart"></div>
+      <div class="chart-foot"><span id="chart-note">Load MT5 data to display candles and signals.</span><span id="signal-count">0 signals</span></div>
+    </section>
+    <section class="panel chart-panel">
+      <div class="section-heading"><div><h2>Volume</h2><p>Broker-reported tick volume per candle</p></div></div>
+      <div id="volume-chart" class="chart volume-chart"></div>
+    </section>
+    <section class="panel chart-panel">
+      <div class="section-heading"><div><h2>RSI (14)</h2><p>Reference levels at 30 / 50 / 70</p></div><strong id="rsi-value">—</strong></div>
+      <div id="rsi-chart" class="chart oscillator-chart"></div>
+    </section>
+    <section class="panel chart-panel">
+      <div class="section-heading"><div><h2>MACD (12, 26, 9)</h2><p>MACD line, signal line and histogram</p></div><strong id="macd-value">—</strong></div>
+      <div id="macd-chart" class="chart oscillator-chart"></div>
+    </section>
+    <section class="metrics secondary-metrics">
+      <article class="metric panel"><span>ATR (14)</span><strong id="atr-value">—</strong><small>Volatility estimate</small></article>
+      <article class="metric panel"><span>EMA alignment</span><strong id="ema-state" class="neutral">—</strong><small>20 / 50 / 200</small></article>
+      <article class="metric panel"><span>Latest volume</span><strong id="volume-value">—</strong><small>Tick volume</small></article>
+      <article class="metric panel"><span>Data candles</span><strong id="candle-count">—</strong><small id="data-source">Source: —</small></article>
+    </section>
+    <section class="panel analysis-panel">
+      <div class="section-heading"><div><h2>Signal analysis</h2><p>Confluence and market structure</p></div></div>
+      <div id="analysis-list" class="analysis-list"><p>Signals will appear here after the chart loads.</p></div>
+      <p class="disclaimer">Educational analysis only. Historical markers use EMA crossover + RSI + MACD confluence and do not predict future results. No orders are sent by this dashboard. Validate strategy performance with backtests and demo forward-testing before considering automation.</p>
+    </section>
+    <div id="error" class="error" role="alert" hidden></div>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
