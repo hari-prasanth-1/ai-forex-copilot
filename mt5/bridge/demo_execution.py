@@ -3,8 +3,6 @@
 This module never runs automatically. The caller must pass the API safety gates,
 the environment opt-in must be enabled, and the connected account must be DEMO.
 """
-from __future__ import annotations
-
 import os
 import re
 from datetime import datetime, timezone
