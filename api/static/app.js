@@ -1,15 +1,15 @@
 const $ = id => document.getElementById(id);
-const state = { charts: [], data: null, syncing: false, resizeObserver: null };
+const state = { charts: [], chartElements: new Map(), data: null, syncing: false, resizeObserver: null };
 const fmt = (value, digits=5) => value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(digits);
 const pretty = value => value == null ? "—" : Number(value).toLocaleString(undefined,{maximumFractionDigits:2});
 function setTone(el, value) { el.classList.remove("positive","negative","neutral"); el.classList.add(value==="BUY"||value==="BULLISH" ? "positive" : value==="SELL"||value==="BEARISH" ? "negative" : "neutral"); }
-function createChart(id,height){const el=$(id);const chart=LightweightCharts.createChart(el,{width:el.clientWidth,height,layout:{background:{type:"solid",color:"#0e1726"},textColor:"#91a1b8",fontFamily:"Inter,system-ui,sans-serif",fontSize:11},grid:{vertLines:{color:"#1b2a3d"},horzLines:{color:"#1b2a3d"}},rightPriceScale:{borderColor:"#27364c"},timeScale:{borderColor:"#27364c",timeVisible:true,secondsVisible:false},crosshair:{vertLine:{color:"#61748f"},horzLine:{color:"#61748f"}}});state.charts.push(chart);return chart}
+function createChart(id,height){const el=$(id);const chart=LightweightCharts.createChart(el,{width:el.clientWidth,height,layout:{background:{type:"solid",color:"#0e1726"},textColor:"#91a1b8",fontFamily:"Inter,system-ui,sans-serif",fontSize:11},grid:{vertLines:{color:"#1b2a3d"},horzLines:{color:"#1b2a3d"}},rightPriceScale:{borderColor:"#27364c"},timeScale:{borderColor:"#27364c",timeVisible:true,secondsVisible:false},crosshair:{vertLine:{color:"#61748f"},horzLine:{color:"#61748f"}}});state.charts.push(chart);state.chartElements.set(chart,el);return chart}
 function syncCharts(){for(const chart of state.charts){chart.timeScale().subscribeVisibleLogicalRangeChange(range=>{if(!range||state.syncing)return;state.syncing=true;for(const other of state.charts){if(other!==chart){try{other.timeScale().setVisibleLogicalRange(range)}catch{}}}state.syncing=false})}}
 function addLine(chart,color,title){return chart.addLineSeries({color,lineWidth:2,title,priceLineVisible:false,lastValueVisible:true})}
 function addHorizontal(chart,price,color,title){return chart.addLineSeries({color,lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,title,priceLineVisible:false,lastValueVisible:false}).setData([])}
 function render(payload){
   if(!window.LightweightCharts)throw new Error("Chart library did not load. Check internet access and reload.");
-  state.charts.forEach(c=>c.remove());state.charts=[];state.data=payload;
+  state.charts.forEach(c=>c.remove());state.charts=[];state.chartElements.clear();state.data=payload;
   const candles=payload.candles||[];if(!candles.length)throw new Error("MT5 returned no candles.");
   const price=createChart("price-chart",document.getElementById("price-chart").clientHeight||370);
   const candleSeries=price.addCandlestickSeries({upColor:"#2dd4a7",downColor:"#ff687d",borderUpColor:"#2dd4a7",borderDownColor:"#ff687d",wickUpColor:"#2dd4a7",wickDownColor:"#ff687d",priceLineVisible:true});
@@ -60,6 +60,6 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<"
 async function loadChart(){const symbol=$("symbol").value.trim().toUpperCase(),timeframe=$("timeframe").value,limit=$("limit").value;if(!/^[A-Z0-9.]{3,12}$/.test(symbol)){showError("Enter a valid broker symbol.");return}const btn=$("analyse");btn.disabled=true;$("connection").textContent="Connecting to MT5…";$("error").hidden=true;try{const response=await fetch("/mt5/chart/"+encodeURIComponent(symbol)+"?timeframe="+timeframe+"&limit="+limit,{headers:{Accept:"application/json"}});const payload=await response.json();if(!response.ok)throw new Error(payload.detail||"Request failed with HTTP "+response.status);render(payload)}catch(error){showError(error.message||String(error));$("connection").textContent="Connection failed"}finally{btn.disabled=false}}
 function showError(message){$("error").textContent=message;$("error").hidden=false}
 $("analyse").addEventListener("click",loadChart);$("refresh").addEventListener("click",loadChart);$("timeframe").addEventListener("change",()=>{if(state.data)loadChart()});
-if("ResizeObserver"in window){state.resizeObserver=new ResizeObserver(()=>{for(const chart of state.charts){const parent=chart.takeScreenshot?null:null;const el=chart._container;if(el)chart.applyOptions({width:el.clientWidth})}});for(const id of ["price-chart","volume-chart","rsi-chart","macd-chart"])state.resizeObserver.observe($(id))}
+if("ResizeObserver"in window){state.resizeObserver=new ResizeObserver(entries=>{for(const entry of entries){for(const chart of state.charts){if(state.chartElements.get(chart)===entry.target)chart.applyOptions({width:entry.target.clientWidth})}}});for(const id of ["price-chart","volume-chart","rsi-chart","macd-chart"])state.resizeObserver.observe($(id))}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/static/sw.js").catch(()=>{});
 loadChart();
