@@ -1,7 +1,8 @@
 """Mobile-ready API boundary for the Forex Copilot."""
 from __future__ import annotations
 
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
@@ -13,6 +14,7 @@ from pydantic import BaseModel, Field
 from api.chart import router as chart_router
 from api.services import build_analysis
 from market_data.models import Candle, Timeframe
+from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
 from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData
 
 
@@ -76,6 +78,19 @@ class LivePaperResponse(BaseModel):
     execution_enabled: bool = False
 
 
+class DemoArmRequest(BaseModel):
+    confirmation: str
+
+
+class DemoOrderRequest(BaseModel):
+    symbol: str = Field(min_length=3, max_length=12)
+    side: str
+    volume: float = Field(gt=0, le=0.01)
+    stop_loss: float = Field(gt=0)
+    take_profit: float = Field(gt=0)
+    confirmation: str
+
+
 class SafetyState(BaseModel):
     mode: TradingMode = TradingMode.ANALYSIS_ONLY
     kill_switch: bool = True
@@ -86,6 +101,8 @@ app = FastAPI(title="AI Forex Copilot API", version="0.3.0")
 app.include_router(chart_router)
 app.mount("/static", StaticFiles(directory="api/static"), name="static")
 _state = SafetyState()
+_demo_order_count = 0
+_demo_order_date = datetime.now(timezone.utc).date()
 
 
 @app.get("/", include_in_schema=False)
@@ -213,6 +230,60 @@ def paper_live(
         latest_close=candles[-1].close if candles else None,
         evidence=list(setup.evidence),
     )
+
+
+
+@app.post("/demo/arm", response_model=SafetyState)
+def arm_demo(request: DemoArmRequest) -> SafetyState:
+    """Explicitly arm assisted demo mode; the executor independently verifies demo account."""
+    if request.confirmation != "I CONFIRM DEMO ONLY":
+        raise HTTPException(status_code=400, detail="Exact confirmation phrase is required")
+    if os.getenv("FOREX_COPILOT_ENABLE_DEMO_ORDERS", "").lower() != "true":
+        raise HTTPException(
+            status_code=403,
+            detail="Set FOREX_COPILOT_ENABLE_DEMO_ORDERS=true locally to opt into demo execution",
+        )
+    _state.mode = TradingMode.ASSISTED_DEMO
+    _state.kill_switch = False
+    _state.execution_enabled = True
+    return _state
+
+
+@app.post("/demo/order")
+def demo_order(request: DemoOrderRequest) -> dict[str, Any]:
+    """Place only an explicitly confirmed, risk-capped order on a verified MT5 DEMO account."""
+    global _demo_order_count, _demo_order_date
+    demo_not_armed = (
+        _state.kill_switch
+        or not _state.execution_enabled
+        or _state.mode != TradingMode.ASSISTED_DEMO
+    )
+    if demo_not_armed:
+        raise HTTPException(
+            status_code=423,
+            detail="Demo execution is not armed; kill switch is active",
+        )
+    if request.confirmation != "PLACE DEMO ORDER":
+        raise HTTPException(status_code=400, detail="Exact order confirmation phrase is required")
+    today = datetime.now(timezone.utc).date()
+    if today != _demo_order_date:
+        _demo_order_date = today
+        _demo_order_count = 0
+    try:
+        result = submit_demo_order(
+            symbol=request.symbol,
+            side=request.side,
+            volume=request.volume,
+            stop_loss=request.stop_loss,
+            take_profit=request.take_profit,
+            orders_today=_demo_order_count,
+        )
+        _demo_order_count += 1
+        return result
+    except ExecutionRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"MT5 demo execution error: {exc}") from exc
 
 
 @app.get("/risk", response_model=RiskResponse)
