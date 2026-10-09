@@ -39,31 +39,24 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
     previous_sell = False
     for index, candle in enumerate(candles):
         e20, e50 = _number(ema20.iloc[index]), _number(ema50.iloc[index])
+        e200 = _number(ema200.iloc[index])
         rv = _number(rsi14.iloc[index])
         hist = _number(macd_frame["histogram"].iloc[index])
-        signal = None
+        close = _number(closes.iloc[index])
+
+        # Mark the first candle where the full directional confluence becomes true,
+        # not only the exact EMA-cross candle. RSI/MACD often confirm a few bars later.
         buy_setup = (
-            index > 0
-            and e20 is not None
-            and e50 is not None
-            and rv is not None
-            and hist is not None
-            and e20 > e50 and rv >= 50 and rv < 70 and hist > 0
-            and _number(ema20.iloc[index - 1]) is not None
-            and _number(ema50.iloc[index - 1]) is not None
-            and _number(ema20.iloc[index - 1]) <= _number(ema50.iloc[index - 1])
+            e20 is not None and e50 is not None and close is not None
+            and rv is not None and hist is not None
+            and e20 > e50 and close > e20 and 50 <= rv < 70 and hist > 0
         )
         sell_setup = (
-            index > 0
-            and e20 is not None
-            and e50 is not None
-            and rv is not None
-            and hist is not None
-            and e20 < e50 and rv <= 50 and rv > 30 and hist < 0
-            and _number(ema20.iloc[index - 1]) is not None
-            and _number(ema50.iloc[index - 1]) is not None
-            and _number(ema20.iloc[index - 1]) >= _number(ema50.iloc[index - 1])
+            e20 is not None and e50 is not None and close is not None
+            and rv is not None and hist is not None
+            and e20 < e50 and close < e20 and 30 < rv <= 50 and hist < 0
         )
+        signal = None
         if buy_setup and not previous_buy:
             signal = "BUY"
         elif sell_setup and not previous_sell:
@@ -74,7 +67,7 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
             "timestamp": candle.timestamp.isoformat(),
             "open": candle.open, "high": candle.high, "low": candle.low,
             "close": candle.close, "volume": candle.volume,
-            "ema20": e20, "ema50": e50, "ema200": _number(ema200.iloc[index]),
+            "ema20": e20, "ema50": e50, "ema200": e200,
             "rsi14": rv, "macd": _number(macd_frame["macd"].iloc[index]),
             "macd_signal": _number(macd_frame["signal"].iloc[index]),
             "macd_histogram": hist, "atr14": _number(atr14.iloc[index]),
