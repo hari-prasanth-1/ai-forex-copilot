@@ -22,6 +22,22 @@
       <button id="analyse">Load live chart</button>
       <button id="refresh" class="secondary">Refresh</button>
     </section>
+    <section class="panel auto-bot-panel">
+      <div class="section-heading"><div><h2>AI Auto Bot · DEMO ONLY</h2><p>AI reviews strategy candidates; risk rules remain authoritative. Real accounts are blocked.</p></div><strong id="bot-state" class="neutral">STOPPED</strong></div>
+      <div class="bot-controls">
+        <label>Bot symbol <select id="bot-symbol"><option selected>AUDUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>XAUUSD</option></select></label>
+        <label>Timeframe <select id="bot-timeframe"><option>M5</option><option selected>M15</option><option>H1</option></select></label>
+        <button id="bot-start" type="button">Start demo bot</button>
+        <button id="bot-stop" type="button" class="secondary">Stop bot</button>
+      </div>
+      <div class="bot-status-grid">
+        <div><span>Last decision</span><b id="bot-decision">WAIT</b></div>
+        <div><span>Orders today</span><b id="bot-orders">0 / 3</b></div>
+        <div><span>Last check</span><b id="bot-check">—</b></div>
+        <div><span>Reason</span><b id="bot-reason">Bot is stopped</b></div>
+      </div>
+      <p class="disclaimer">Requires local .env opt-in flags and OPENAI_API_KEY. Starts only after exact confirmation. Max 0.01 lot, risk <=0.5% per trade, spread <=35 points, one open position, 3 orders/day and 2% daily equity-loss stop. AI errors always block trades.</p>
+    </section>
     <section class="metrics">
       <article class="metric panel"><span>Latest close</span><strong id="price">—</strong><small id="market-label">AUDUSD · M15</small></article>
       <article class="metric panel"><span>Trend view</span><strong id="trend" class="neutral">—</strong><small id="structure">Market structure: —</small></article>
