@@ -49,12 +49,12 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
         buy_setup = (
             e20 is not None and e50 is not None and close is not None
             and rv is not None and hist is not None
-            and e20 > e50 and close > e20 and rv >= 50 and hist > 0
+            and e20 > e50 and close > e20 and hist > 0
         )
         sell_setup = (
             e20 is not None and e50 is not None and close is not None
             and rv is not None and hist is not None
-            and e20 < e50 and close < e20 and rv <= 50 and hist < 0
+            and e20 < e50 and close < e20 and hist < 0
         )
         signal = None
         if buy_setup and not previous_buy:
