@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const state = { charts: [], chartElements: new Map(), data: null, syncing: false, resizeObserver: null, loading: false, lastUpdated: null };
-const POLL_INTERVAL_MS = 10000;
+const POLL_INTERVAL_MS = 5000;
 const fmt = (value, digits=5) => value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(digits);
 const pretty = value => value == null ? "—" : Number(value).toLocaleString(undefined,{maximumFractionDigits:2});
 function setTone(el, value) { el.classList.remove("positive","negative","neutral"); el.classList.add(value==="BUY"||value==="BUY BIAS"||value==="BULLISH" ? "positive" : value==="SELL"||value==="SELL BIAS"||value==="BEARISH" ? "negative" : "neutral"); }
