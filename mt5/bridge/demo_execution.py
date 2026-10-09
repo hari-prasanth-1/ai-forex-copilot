@@ -8,7 +8,6 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-
 MAX_VOLUME = 0.01
 MAX_RISK_FRACTION = 0.005
 MAX_ORDERS_PER_DAY = 3
