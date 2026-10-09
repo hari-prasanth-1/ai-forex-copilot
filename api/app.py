@@ -11,8 +11,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from api.chart import router as chart_router
 from agent.orchestration.auto_demo import auto_demo_bot
+from api.chart import router as chart_router
 from api.services import build_analysis
 from market_data.models import Candle, Timeframe
 from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
