@@ -30,7 +30,9 @@ def test_auto_demo_requires_ai_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
         AutoDemoBot().start("START DEMO AUTO BOT")
 
 
-def test_auto_demo_rejects_invalid_timeframe_before_starting(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_auto_demo_rejects_invalid_timeframe_before_starting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("FOREX_COPILOT_ENABLE_DEMO_ORDERS", "true")
     monkeypatch.setenv("FOREX_COPILOT_ENABLE_AUTO_DEMO", "true")
     monkeypatch.setenv("OPENAI_API_KEY", "test-only-not-a-real-key")
