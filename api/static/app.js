@@ -94,6 +94,12 @@ async function refreshBotStatus(){
     $("bot-check").textContent=status.last_check?new Date(status.last_check).toLocaleTimeString():"—";
     $("bot-reason").textContent=status.error||status.last_reason||"—";
     $("bot-reason").title=status.error||status.last_reason||"";
+    const currency=status.currency||"";
+    $("bot-balance").textContent=status.balance==null?"—":Number(status.balance).toFixed(2)+" "+currency;
+    $("bot-equity").textContent=status.equity==null?"—":Number(status.equity).toFixed(2)+" "+currency;
+    $("bot-pnl").textContent=status.floating_pnl==null?"—":Number(status.floating_pnl).toFixed(2)+" "+currency;
+    $("bot-pnl").classList.toggle("positive",Number(status.floating_pnl)>0);
+    $("bot-pnl").classList.toggle("negative",Number(status.floating_pnl)<0);
     $("bot-start").disabled=Boolean(status.running);
     $("bot-stop").disabled=!status.running;
   }catch(error){$("bot-reason").textContent=error.message||String(error)}
