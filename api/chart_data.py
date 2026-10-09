@@ -28,7 +28,6 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
     closes = pd.Series([c.close for c in candles], dtype="float64")
     highs = pd.Series([c.high for c in candles], dtype="float64")
     lows = pd.Series([c.low for c in candles], dtype="float64")
-    volumes = pd.Series([c.volume for c in candles], dtype="float64")
     ema20, ema50, ema200 = ema(closes, 20), ema(closes, 50), ema(closes, 200)
     rsi14 = rsi(closes, 14)
     macd_frame = macd(closes)
@@ -44,7 +43,11 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
         hist = _number(macd_frame["histogram"].iloc[index])
         signal = None
         buy_setup = (
-            index > 0 and e20 is not None and e50 is not None and rv is not None and hist is not None
+            index > 0
+            and e20 is not None
+            and e50 is not None
+            and rv is not None
+            and hist is not None
             and e20 > e50 and rv >= 50 and rv < 70 and hist > 0
             and _number(ema20.iloc[index - 1]) is not None
             and _number(ema50.iloc[index - 1]) is not None
@@ -88,7 +91,10 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
             "macd_histogram": last["macd_histogram"], "atr14": last["atr14"],
             "volume": last["volume"],
         },
-        "signals_note": "Historical EMA20/EMA50 crossover with RSI and MACD confluence; informational only.",
+        "signals_note": (
+            "Historical EMA20/EMA50 crossover with RSI and MACD confluence; "
+            "informational only."
+        ),
         "execution_enabled": False,
     }
 
@@ -100,7 +106,10 @@ def load_mt5_chart(symbol: str, timeframe: Timeframe, limit: int = 200) -> dict[
         raise ValueError("limit must be between 50 and 5000")
     adapter = MetaTrader5MarketData()
     try:
-        candles = list(adapter.get_candles(MarketRequest(symbol=symbol.upper(), timeframe=timeframe, limit=limit)))
+        request = MarketRequest(
+            symbol=symbol.upper(), timeframe=timeframe, limit=limit
+        )
+        candles = list(adapter.get_candles(request))
         return build_chart_payload(symbol, timeframe, candles)
     finally:
         adapter.shutdown()
