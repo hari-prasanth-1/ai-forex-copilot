@@ -1,8 +1,8 @@
 """Mobile-ready API boundary for the Forex Copilot."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 
@@ -11,11 +11,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
-
 from api.chart import router as chart_router
 from api.services import build_analysis
 from market_data.models import Candle, Timeframe
+from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
 from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData
 
 
@@ -254,8 +253,16 @@ def arm_demo(request: DemoArmRequest) -> SafetyState:
 def demo_order(request: DemoOrderRequest) -> dict[str, Any]:
     """Place only an explicitly confirmed, risk-capped order on a verified MT5 DEMO account."""
     global _demo_order_count, _demo_order_date
-    if _state.kill_switch or not _state.execution_enabled or _state.mode != TradingMode.ASSISTED_DEMO:
-        raise HTTPException(status_code=423, detail="Demo execution is not armed; kill switch is active")
+    demo_not_armed = (
+        _state.kill_switch
+        or not _state.execution_enabled
+        or _state.mode != TradingMode.ASSISTED_DEMO
+    )
+    if demo_not_armed:
+        raise HTTPException(
+            status_code=423,
+            detail="Demo execution is not armed; kill switch is active",
+        )
     if request.confirmation != "PLACE DEMO ORDER":
         raise HTTPException(status_code=400, detail="Exact order confirmation phrase is required")
     today = datetime.now(timezone.utc).date()
