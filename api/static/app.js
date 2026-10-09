@@ -81,4 +81,44 @@ function scheduleRefresh(){window.setTimeout(async()=>{await loadChart();schedul
 $("analyse").addEventListener("click",loadChart);$("refresh").addEventListener("click",loadChart);document.querySelectorAll(".watch-symbol").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll(".watch-symbol").forEach(item=>item.classList.toggle("active",item===button));$("symbol").value=button.dataset.symbol;loadChart()}));$("timeframe").addEventListener("change",()=>{if(state.data)loadChart()});
 if("ResizeObserver"in window){state.resizeObserver=new ResizeObserver(entries=>{for(const entry of entries){for(const chart of state.charts){if(state.chartElements.get(chart)===entry.target)chart.applyOptions({width:entry.target.clientWidth})}}});for(const id of ["price-chart","volume-chart","rsi-chart","macd-chart"])state.resizeObserver.observe($(id))}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/static/sw.js").catch(()=>{});
+
+async function refreshBotStatus(){
+  try{
+    const response=await fetch("/auto-demo/status",{cache:"no-store"});
+    const status=await response.json();
+    if(!response.ok)throw new Error(status.detail||"Bot status request failed");
+    $("bot-state").textContent=status.running?"RUNNING · DEMO":"STOPPED";
+    setTone($("bot-state"),status.running?"BUY BIAS":"WAIT");
+    $("bot-decision").textContent=status.last_decision||"WAIT";
+    $("bot-orders").textContent=(status.orders_today??0)+" / 3";
+    $("bot-check").textContent=status.last_check?new Date(status.last_check).toLocaleTimeString():"—";
+    $("bot-reason").textContent=status.error||status.last_reason||"—";
+    $("bot-reason").title=status.error||status.last_reason||"";
+    $("bot-start").disabled=Boolean(status.running);
+    $("bot-stop").disabled=!status.running;
+  }catch(error){$("bot-reason").textContent=error.message||String(error)}
+}
+async function startBot(){
+  const confirmation=window.prompt('DEMO ONLY. This can place orders on your MT5 demo account. Type exactly: START DEMO AUTO BOT');
+  if(confirmation===null)return;
+  try{
+    const response=await fetch("/auto-demo/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirmation,symbol:$("bot-symbol").value,timeframe:$("bot-timeframe").value})});
+    const payload=await response.json();
+    if(!response.ok)throw new Error(payload.detail||"Could not start demo bot");
+    await refreshBotStatus();
+  }catch(error){$("bot-reason").textContent=error.message||String(error)}
+}
+async function stopBot(){
+  try{
+    const response=await fetch("/auto-demo/stop",{method:"POST",cache:"no-store"});
+    const payload=await response.json();
+    if(!response.ok)throw new Error(payload.detail||"Could not stop bot");
+    await refreshBotStatus();
+  }catch(error){$("bot-reason").textContent=error.message||String(error)}
+}
+$("bot-start").addEventListener("click",startBot);
+$("bot-stop").addEventListener("click",stopBot);
+refreshBotStatus();
+window.setInterval(refreshBotStatus,5000);
+
 loadChart().finally(scheduleRefresh);
