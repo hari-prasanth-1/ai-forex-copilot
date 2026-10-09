@@ -330,6 +330,8 @@ def mobile_live(
 
 class AutoDemoStartRequest(BaseModel):
     confirmation: str
+    symbol: str = Field(default="AUDUSD", min_length=3, max_length=12)
+    timeframe: Timeframe = Timeframe.M15
 
 
 @app.get("/auto-demo/status")
@@ -342,7 +344,7 @@ def auto_demo_status() -> dict[str, Any]:
 def auto_demo_start(request: AutoDemoStartRequest) -> dict[str, Any]:
     """Start the opt-in AI-reviewed demo-only worker."""
     try:
-        return auto_demo_bot.start(request.confirmation)
+        return auto_demo_bot.start(request.confirmation, request.symbol, request.timeframe.value)
     except ValueError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
 
