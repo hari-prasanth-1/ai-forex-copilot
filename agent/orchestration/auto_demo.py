@@ -150,6 +150,9 @@ class AutoDemoBot:
                 candles = tuple(adapter.get_candles(MarketRequest(symbol, timeframe, 300)))
             finally:
                 adapter.shutdown()
+            # The market-data adapter calls MT5 shutdown; reconnect before reading quotes.
+            mt5, snapshot = self._account_snapshot()
+            account, positions = snapshot
             if len(candles) < 220:
                 self._record("WAIT", "Need at least 220 candles before evaluating a setup", None)
                 return
