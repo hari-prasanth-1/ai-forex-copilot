@@ -3,7 +3,7 @@ const state = { charts: [], chartElements: new Map(), data: null, syncing: false
 const POLL_INTERVAL_MS = 10000;
 const fmt = (value, digits=5) => value == null || !Number.isFinite(Number(value)) ? "—" : Number(value).toFixed(digits);
 const pretty = value => value == null ? "—" : Number(value).toLocaleString(undefined,{maximumFractionDigits:2});
-function setTone(el, value) { el.classList.remove("positive","negative","neutral"); el.classList.add(value==="BUY"||value==="BULLISH" ? "positive" : value==="SELL"||value==="BEARISH" ? "negative" : "neutral"); }
+function setTone(el, value) { el.classList.remove("positive","negative","neutral"); el.classList.add(value==="BUY"||value==="BUY BIAS"||value==="BULLISH" ? "positive" : value==="SELL"||value==="SELL BIAS"||value==="BEARISH" ? "negative" : "neutral"); }
 function createChart(id,height){const el=$(id);const chart=LightweightCharts.createChart(el,{width:el.clientWidth,height,layout:{background:{type:"solid",color:"#0e1726"},textColor:"#91a1b8",fontFamily:"Inter,system-ui,sans-serif",fontSize:11},grid:{vertLines:{color:"#1b2a3d"},horzLines:{color:"#1b2a3d"}},rightPriceScale:{borderColor:"#27364c"},timeScale:{borderColor:"#27364c",timeVisible:true,secondsVisible:false},crosshair:{vertLine:{color:"#61748f"},horzLine:{color:"#61748f"}}});state.charts.push(chart);state.chartElements.set(chart,el);return chart}
 function syncCharts(){for(const chart of state.charts){chart.timeScale().subscribeVisibleLogicalRangeChange(range=>{if(!range||state.syncing)return;state.syncing=true;for(const other of state.charts){if(other!==chart){try{other.timeScale().setVisibleLogicalRange(range)}catch{}}}state.syncing=false})}}
 function addLine(chart,color,title){return chart.addLineSeries({color,lineWidth:2,title,priceLineVisible:false,lastValueVisible:true})}
@@ -81,4 +81,4 @@ function scheduleRefresh(){window.setTimeout(async()=>{await loadChart().finally
 $("analyse").addEventListener("click",loadChart);$("refresh").addEventListener("click",loadChart);$("timeframe").addEventListener("change",()=>{if(state.data)loadChart()});
 if("ResizeObserver"in window){state.resizeObserver=new ResizeObserver(entries=>{for(const entry of entries){for(const chart of state.charts){if(state.chartElements.get(chart)===entry.target)chart.applyOptions({width:entry.target.clientWidth})}}});for(const id of ["price-chart","volume-chart","rsi-chart","macd-chart"])state.resizeObserver.observe($(id))}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/static/sw.js").catch(()=>{});
-loadChart();
+loadChart().finally(scheduleRefresh);
