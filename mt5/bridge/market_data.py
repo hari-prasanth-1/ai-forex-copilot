@@ -103,13 +103,24 @@ class MetaTrader5MarketData:
         self._initialized = False
 
 
+def _row_value(row: object, field: str) -> Any:
+    """Read a field from MT5's NumPy structured scalars or attribute-based test rows."""
+    try:
+        return row[field]  # type: ignore[index]
+    except (TypeError, KeyError, IndexError):
+        try:
+            return getattr(row, field)
+        except AttributeError as exc:
+            raise ValueError(f"MT5 candle row is missing field {field!r}") from exc
+
+
 def candle_from_mt5_row(row: object) -> Candle:
-    timestamp = datetime.fromtimestamp(float(row.time), tz=timezone.utc)
+    timestamp = datetime.fromtimestamp(float(_row_value(row, "time")), tz=timezone.utc)
     return Candle(
         timestamp=timestamp,
-        open=float(row.open),
-        high=float(row.high),
-        low=float(row.low),
-        close=float(row.close),
-        volume=float(row.tick_volume),
+        open=float(_row_value(row, "open")),
+        high=float(_row_value(row, "high")),
+        low=float(_row_value(row, "low")),
+        close=float(_row_value(row, "close")),
+        volume=float(_row_value(row, "tick_volume")),
     )
