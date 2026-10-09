@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 from market_data.models import Candle, Timeframe
@@ -55,6 +56,24 @@ def test_mt5_row_is_normalized_to_internal_candle() -> None:
         close=0.7010,
         tick_volume=123,
     )
+    candle = candle_from_mt5_row(row)
+    assert candle.timestamp.tzinfo == timezone.utc
+    assert candle.close == pytest.approx(0.7010)
+    assert candle.volume == 123
+
+
+def test_mt5_numpy_structured_row_is_normalized_to_internal_candle() -> None:
+    row = np.array(
+        (1790416800, 0.7000, 0.7020, 0.6990, 0.7010, 123),
+        dtype=[
+            ("time", "i8"),
+            ("open", "f8"),
+            ("high", "f8"),
+            ("low", "f8"),
+            ("close", "f8"),
+            ("tick_volume", "i8"),
+        ],
+    )[()]
     candle = candle_from_mt5_row(row)
     assert candle.timestamp.tzinfo == timezone.utc
     assert candle.close == pytest.approx(0.7010)
