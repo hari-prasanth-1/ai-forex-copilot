@@ -37,3 +37,33 @@ def test_chart_payload_includes_candles_indicators_and_read_only_guard() -> None
     assert latest["macd_histogram"] is not None
     assert latest["atr14"] is not None
     assert latest["volume"] == 339
+
+
+
+def test_chart_marks_buy_when_bullish_confluence_confirms_after_cross() -> None:
+    import math
+
+    start = datetime(2026, 9, 1, tzinfo=timezone.utc)
+    candles = []
+    # A long decline followed by a measured recovery creates a later EMA cross;
+    # the signal should be marked when momentum confirms, not only on the cross bar.
+    for index in range(400):
+        if index < 230:
+            close = 0.6900 - index * 0.00006 + math.sin(index / 3) * 0.00012
+        else:
+            progress = index - 230
+            close = 0.6762 + progress * 0.000045 + math.sin(index / 3) * 0.00018
+        candles.append(
+            Candle(
+                timestamp=start + timedelta(minutes=15 * index),
+                open=close - 0.00002,
+                high=close + 0.00015,
+                low=close - 0.00015,
+                close=close,
+                volume=100 + index,
+            )
+        )
+
+    payload = build_chart_payload("AUDUSD", Timeframe.M15, candles)
+
+    assert any(candle["signal"] == "BUY" for candle in payload["candles"])
