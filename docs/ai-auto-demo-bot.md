@@ -27,7 +27,7 @@ The model cannot set volume, bypass risk checks, or send orders itself.
 3. Install the optional MT5 package on the same Windows Python environment: `python -m pip install MetaTrader5`
 4. Copy `.env.example` to `.env`; put your API key in `OPENAI_API_KEY`. Configure model/cost controls in the OpenAI API project. Do not paste keys into chat or commit them.
 5. First leave both flags false and run tests/backtests. For a deliberate demo forward-test only, set `FOREX_COPILOT_ENABLE_DEMO_ORDERS=true` and `FOREX_COPILOT_ENABLE_AUTO_DEMO=true` in `.env`.
-6. Start API from the repository root: `uvicorn api.app:app --host 127.0.0.1 --port 8000`
+6. Start API from the repository root: `uvicorn api.app:app --env-file .env --host 127.0.0.1 --port 8000`
 7. Open `http://127.0.0.1:8000`, review bot status and click Start demo bot. Confirm the exact phrase shown by the UI. Use Stop bot to stop new orders.
 8. Verify each actual fill, attached SL/TP, account history and P&L inside MT5. API status is not a substitute for broker confirmation.
 
