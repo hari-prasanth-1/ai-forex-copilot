@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 
 from api.chart_data import build_chart_payload
 from market_data.models import Timeframe
-from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
+from mt5.bridge.demo_execution import submit_demo_order
 from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData
 
 
