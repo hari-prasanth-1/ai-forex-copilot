@@ -1,8 +1,5 @@
-from datetime import datetime, timezone
-
 import pytest
 
-from market_data.models import Candle, Timeframe
 from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
 
 
