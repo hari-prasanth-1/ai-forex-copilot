@@ -55,6 +55,7 @@ class MetaTrader5MarketData:
         Timeframe.M15: "TIMEFRAME_M15",
         Timeframe.H1: "TIMEFRAME_H1",
         Timeframe.H4: "TIMEFRAME_H4",
+        Timeframe.D1: "TIMEFRAME_D1",
     }
 
     def __init__(self, mt5_module: Any | None = None, initialize: bool = True) -> None:
