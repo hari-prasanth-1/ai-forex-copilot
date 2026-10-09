@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from api.chart import router as chart_router
+from agent.orchestration.auto_demo import auto_demo_bot
 from api.services import build_analysis
 from market_data.models import Candle, Timeframe
 from mt5.bridge.demo_execution import ExecutionRejected, submit_demo_order
@@ -324,3 +325,29 @@ def mobile_live(
         return build_mobile_analysis(symbol.upper(), timeframe, limit)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"mobile market-data error: {exc}") from exc
+
+
+
+class AutoDemoStartRequest(BaseModel):
+    confirmation: str
+
+
+@app.get("/auto-demo/status")
+def auto_demo_status() -> dict[str, Any]:
+    """Read automatic demo-bot status; never starts execution."""
+    return auto_demo_bot.status()
+
+
+@app.post("/auto-demo/start")
+def auto_demo_start(request: AutoDemoStartRequest) -> dict[str, Any]:
+    """Start the opt-in AI-reviewed demo-only worker."""
+    try:
+        return auto_demo_bot.start(request.confirmation)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+
+@app.post("/auto-demo/stop")
+def auto_demo_stop() -> dict[str, Any]:
+    """Stop new automatic demo orders immediately."""
+    return auto_demo_bot.stop()
