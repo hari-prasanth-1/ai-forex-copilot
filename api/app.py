@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from api.chart import router as chart_router
 from api.services import build_analysis
 from market_data.models import Candle, Timeframe
 from mt5.bridge.market_data import MarketRequest, MetaTrader5MarketData
@@ -82,6 +83,7 @@ class SafetyState(BaseModel):
 
 
 app = FastAPI(title="AI Forex Copilot API", version="0.3.0")
+app.include_router(chart_router)
 app.mount("/static", StaticFiles(directory="api/static"), name="static")
 _state = SafetyState()
 

@@ -43,5 +43,5 @@ def test_kill_switch_forces_analysis_only() -> None:
 
 
 def test_live_paper_endpoint_is_declared() -> None:
-    paths = {route.path for route in app.routes}
+    paths = app.openapi()["paths"]
     assert "/paper/live/{symbol}" in paths
