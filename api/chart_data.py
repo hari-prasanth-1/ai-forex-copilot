@@ -54,7 +54,11 @@ def build_chart_payload(symbol: str, timeframe: Timeframe, candles: list[Candle]
             and _number(ema20.iloc[index - 1]) <= _number(ema50.iloc[index - 1])
         )
         sell_setup = (
-            index > 0 and e20 is not None and e50 is not None and rv is not None and hist is not None
+            index > 0
+            and e20 is not None
+            and e50 is not None
+            and rv is not None
+            and hist is not None
             and e20 < e50 and rv <= 50 and rv > 30 and hist < 0
             and _number(ema20.iloc[index - 1]) is not None
             and _number(ema50.iloc[index - 1]) is not None
