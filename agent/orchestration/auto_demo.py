@@ -49,7 +49,9 @@ class AutoDemoBot:
             result["orders_today"] = self._orders_today
             return result
 
-    def start(self, confirmation: str, symbol: str = "AUDUSD", timeframe: str = "M15") -> dict[str, Any]:
+    def start(
+        self, confirmation: str, symbol: str = "AUDUSD", timeframe: str = "M15"
+    ) -> dict[str, Any]:
         if confirmation != "START DEMO AUTO BOT":
             raise ValueError("Exact confirmation phrase is required")
         if os.getenv("FOREX_COPILOT_ENABLE_DEMO_ORDERS", "").lower() != "true":
@@ -192,7 +194,9 @@ class AutoDemoBot:
                 return
             decision = self._ask_ai(symbol, timeframe.value, side, closed, payload["candles"][-12:])
             if decision.get("decision") != side or float(decision.get("confidence", 0)) < 0.75:
-                self._record("WAIT", "AI did not confirm the setup with >=0.75 confidence", decision)
+                self._record(
+                    "WAIT", "AI did not confirm the setup with >=0.75 confidence", decision
+                )
                 return
 
             tick = mt5.symbol_info_tick(symbol)
@@ -209,7 +213,9 @@ class AutoDemoBot:
                 return
             spread_points = (float(tick.ask) - float(tick.bid)) / point
             if spread_points > 35:
-                self._record("WAIT", f"Spread {spread_points:.1f} points exceeds 35-point cap", decision)
+                self._record(
+                    "WAIT", f"Spread {spread_points:.1f} points exceeds 35-point cap", decision
+                )
                 return
             entry = float(tick.ask if side == "BUY" else tick.bid)
             digits = int(info.digits)
@@ -221,13 +227,19 @@ class AutoDemoBot:
             if volume <= 0:
                 self._record("WAIT", "Configured volume is invalid", decision)
                 return
+            # A stop request must be checked immediately before the side effect.
+            if self._stop_event.is_set():
+                self._record("WAIT", "Stop requested before order submission", decision)
+                return
             # Executor independently checks demo mode, SL/TP direction, spread and <=0.5% risk.
             result = submit_demo_order(
                 symbol=symbol, side=side, volume=volume, stop_loss=sl, take_profit=tp,
                 orders_today=self._orders_today,
             )
             self._orders_today += 1
-            self._record(side, "Demo order accepted; verify fill and attached SL/TP in MT5", decision)
+            self._record(
+                side, "Demo order accepted; verify fill and attached SL/TP in MT5", decision
+            )
             with self._lock:
                 self._status["last_order"] = result
         finally:
@@ -248,7 +260,13 @@ class AutoDemoBot:
                 "ema200", "rsi14", "macd_histogram", "atr14", "volume",
             )},
             "recent_candles": [
-                {k: row.get(k) for k in ("time", "open", "high", "low", "close", "ema20", "ema50", "rsi14", "macd_histogram")}
+                {
+                    k: row.get(k)
+                    for k in (
+                        "time", "open", "high", "low", "close", "ema20", "ema50",
+                        "rsi14", "macd_histogram",
+                    )
+                }
                 for row in recent
             ],
         }
@@ -295,7 +313,11 @@ class AutoDemoBot:
             confidence = max(0.0, min(1.0, float(result.get("confidence", 0))))
         except (TypeError, ValueError):
             confidence = 0.0
-        return {"decision": decision, "confidence": confidence, "reason": str(result.get("reason", ""))[:400]}
+        return {
+            "decision": decision,
+            "confidence": confidence,
+            "reason": str(result.get("reason", ""))[:400],
+        }
 
     def _record(self, decision: str, reason: str, ai: Any) -> None:
         with self._lock:
