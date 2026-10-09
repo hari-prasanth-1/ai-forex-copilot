@@ -78,7 +78,7 @@ function getCurrentSignal(latest){
 }
 function showError(message){$("error").textContent=message;$("error").hidden=false}
 function scheduleRefresh(){window.setTimeout(async()=>{await loadChart();scheduleRefresh()},POLL_INTERVAL_MS)}
-$("analyse").addEventListener("click",loadChart);$("refresh").addEventListener("click",loadChart);$("timeframe").addEventListener("change",()=>{if(state.data)loadChart()});
+$("analyse").addEventListener("click",loadChart);$("refresh").addEventListener("click",loadChart);document.querySelectorAll(".watch-symbol").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll(".watch-symbol").forEach(item=>item.classList.toggle("active",item===button));$("symbol").value=button.dataset.symbol;loadChart()}));$("timeframe").addEventListener("change",()=>{if(state.data)loadChart()});
 if("ResizeObserver"in window){state.resizeObserver=new ResizeObserver(entries=>{for(const entry of entries){for(const chart of state.charts){if(state.chartElements.get(chart)===entry.target)chart.applyOptions({width:entry.target.clientWidth})}}});for(const id of ["price-chart","volume-chart","rsi-chart","macd-chart"])state.resizeObserver.observe($(id))}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/static/sw.js").catch(()=>{});
 loadChart().finally(scheduleRefresh);
